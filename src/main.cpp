@@ -61,7 +61,10 @@ public:
   }
 
   AccumulationType &get(size_t lineage_index, size_t query_index) {
-    return _table[lineage_index * _lineage_count + query_index];
+    if(lineage_index >= _lineage_count || query_index >= _query_count){
+      LOG_ERROR("Index is too large");
+    }
+    return _table[lineage_index * _query_count + query_index];
   }
 
 private:
@@ -159,7 +162,9 @@ public:
   expected<size_t, find_error>
   find_label_index(const std::string_view &label) const {
     auto res = std::lower_bound(_labels.begin(), _labels.end(), label);
-    if (*res != label) { return unexpected{find_error::not_found}; }
+    if (res == _labels.end() || *res != label) {
+      return unexpected{find_error::not_found};
+    }
     return std::distance(_labels.begin(), res);
   }
 
@@ -177,6 +182,8 @@ public:
 
     return lm;
   }
+
+  std::string_view operator[](size_t index) const { return _labels[index]; }
 
 private:
   std::vector<std::string> _labels;
@@ -410,6 +417,8 @@ public:
     return accumulation_table;
   }
 
+  size_t total_splits() const { return size() * _splits.front().split_count(); }
+
 private:
   std::vector<SplitSet> _splits;
 };
@@ -434,10 +443,13 @@ int main(int argc, char **argv) {
   CLI11_PARSE(app, argc, argv);
 
   LOG_INFO("Parsing trees");
-  auto     tree_list = TreeList::parse_tree_file(options.treeset_file);
-  LOG_INFO("Done parsing");
-  TaxaList lineage_list{{"A1_SBX1208", "D3_PAP2541", "B1_IRC203927"}};
-  TaxaList query_list{{"A4_IRC200261"}};
+  auto tree_list = TreeList::parse_tree_file(options.treeset_file);
+
+  TaxaList lineage_list{{"A1_SBX1208", "D3_PAP2541", "B1_IRC203927", "A1_PAP161762"}};
+  TaxaList query_list{{"A4_IRC200261", "A1_SCD4095", "A1_PAP111822", "A1_IRC200639"}};
+
+  LOG_INFO("Sorting taxa lists");
+
   lineage_list.sort();
   query_list.sort();
 
@@ -451,9 +463,13 @@ int main(int argc, char **argv) {
   LOG_INFO("Computing results");
   auto table = split_set_list.accumulate(lineage_list, query_list);
 
+  LOG_INFO("Total Splits: {}", split_set_list.total_splits());
   for (size_t i = 0; i < lineage_list.size(); ++i) {
     for (size_t j = 0; j < query_list.size(); ++j) {
-      LOG_INFO("i: {}, j: {}, val: {}", i, j, table.get(i, j));
+      LOG_INFO("lineage: {}, query: {}, count: {}",
+               lineage_list[i],
+               query_list[j],
+               table.get(i, j));
     }
   }
 }
