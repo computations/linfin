@@ -15,7 +15,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
-#include <vector>
+#include <yaml-cpp/yaml.h>
 
 using Path = std::filesystem::path;
 using Tree = corax_utree_t;
@@ -61,7 +61,7 @@ public:
   }
 
   AccumulationType &get(size_t lineage_index, size_t query_index) {
-    if(lineage_index >= _lineage_count || query_index >= _query_count){
+    if (lineage_index >= _lineage_count || query_index >= _query_count) {
       LOG_ERROR("Index is too large");
     }
     return _table[lineage_index * _query_count + query_index];
@@ -154,6 +154,10 @@ private:
 class TaxaList {
 public:
   TaxaList(const std::vector<std::string> &labels) : _labels{labels} {}
+
+  TaxaList(const YAML::Node &yaml) {
+    for (auto n : yaml) { _labels.push_back(n.as<std::string>()); }
+  }
 
   enum class find_error {
     not_found,
@@ -426,6 +430,7 @@ private:
 struct ProgramOptions {
   Path treeset_file;
   Path output_prefix;
+  Path yaml_config;
 };
 
 int main(int argc, char **argv) {
@@ -438,6 +443,7 @@ int main(int argc, char **argv) {
   CLI::App       app{"A project for chase :)"};
 
   app.add_option("--treeset", options.treeset_file);
+  app.add_option("--config", options.yaml_config);
   // app.add_option("--prefix", options.output_prefix);
 
   CLI11_PARSE(app, argc, argv);
@@ -445,8 +451,13 @@ int main(int argc, char **argv) {
   LOG_INFO("Parsing trees");
   auto tree_list = TreeList::parse_tree_file(options.treeset_file);
 
-  TaxaList lineage_list{{"A1_SBX1208", "D3_PAP2541", "B1_IRC203927", "A1_PAP161762"}};
-  TaxaList query_list{{"A4_IRC200261", "A1_SCD4095", "A1_PAP111822", "A1_IRC200639"}};
+  auto yaml = YAML::LoadFile(options.yaml_config);
+
+  constexpr auto LINEAGE_KEY = "lineages";
+  constexpr auto QUERIES_KEY = "queries";
+
+  TaxaList lineage_list(yaml[LINEAGE_KEY]);
+  TaxaList query_list(yaml[QUERIES_KEY]);
 
   LOG_INFO("Sorting taxa lists");
 
