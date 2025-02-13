@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
-#include <fstream>
 
 using Path = std::filesystem::path;
 using Tree = corax_utree_t;

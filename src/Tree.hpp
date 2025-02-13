@@ -2,10 +2,13 @@
 #include "Taxa.hpp"
 #include "Util.hpp"
 
+#include <algorithm>
 #include <corax/corax.hpp>
-#include <fstream>
+#include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <logger.hpp>
+#include <stdexcept>
 
 class TreeList {
 public:
@@ -78,13 +81,58 @@ public:
   }
 
 private:
+  struct label_index_pair {
+    char  *label;
+    size_t index;
+  };
+
+  std::vector<label_index_pair> fill_label_table(Tree *tree) {
+    std::vector<label_index_pair> label_table;
+    label_table.reserve(tree->tip_count);
+    // char **label_table = (char **)malloc(tree->tip_count * sizeof(char *));
+    for (size_t i = 0; i < tree->tip_count; ++i) {
+      auto node = tree->nodes[i];
+      label_table.push_back({node->label, node->node_index});
+    }
+
+    struct {
+      bool operator()(const label_index_pair &a, const label_index_pair &b) {
+        return strcmp(a.label, b.label) < 0;
+      }
+    } comp;
+
+    std::sort(label_table.begin(), label_table.end(), comp);
+
+    return label_table;
+  }
+
+  void set_node_ids_by_label(Tree                                *tree,
+                             const std::vector<label_index_pair> &label_table) {
+    for (size_t i = 0; i < tree->tip_count; ++i) {
+      auto node = tree->nodes[i];
+
+      auto res = std::lower_bound(label_table.begin(),
+                                  label_table.end(),
+                                  node->label,
+                                  [](const label_index_pair &a, char *key) {
+                                    return strcmp(a.label, key) < 0;
+                                  });
+
+      if (res == label_table.end()) {
+        throw std::runtime_error{"Failed to set node id by label"};
+      }
+
+      node->node_index = res->index;
+    }
+  }
+
   void make_tree_node_ids_consistent() {
     auto &standard_tree = _trees.front();
+
+    auto label_table = fill_label_table(standard_tree);
+
     for (size_t i = 1; i < _trees.size(); ++i) {
-      auto res = corax_utree_consistency_set(standard_tree, _trees[i]);
-      if (res != CORAX_SUCCESS) {
-        throw std::runtime_error{"Failed to set consistency"};
-      }
+      set_node_ids_by_label(_trees[i], label_table);
     }
   }
   std::vector<Tree *> _trees;

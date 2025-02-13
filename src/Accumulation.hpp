@@ -3,9 +3,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <logger.hpp>
 #include <stdlib.h>
 #include <utility>
-#include <logger.hpp>
 
 class AccumulationTable {
 public:
