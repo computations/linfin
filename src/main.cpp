@@ -1,6 +1,6 @@
+#include "Split.hpp"
 #include "Taxa.hpp"
 #include "Tree.hpp"
-#include "Split.hpp"
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
@@ -22,9 +22,9 @@ struct ProgramOptions {
 int main(int argc, char **argv) {
   logger::get_log_states().add_stream(
       stdout,
-      logger::log_level::info | logger::log_level::warning
-          | logger::log_level::important | logger::log_level::error
-          | logger::log_level::progress);
+      logger::log_level::info | logger::log_level::warning |
+          logger::log_level::important | logger::log_level::error |
+          logger::log_level::progress);
   ProgramOptions options;
   CLI::App       app{"A project for chase :)"};
 
@@ -55,7 +55,6 @@ int main(int argc, char **argv) {
 
   LOG_INFO("Making splits");
   SplitSetList split_set_list{tree_list};
-  auto        &ss = split_set_list[0];
 
   LOG_INFO("Computing results");
   auto table = split_set_list.accumulate(lineage_list, query_list);

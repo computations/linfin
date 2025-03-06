@@ -69,15 +69,15 @@ struct Split {
     uint32_t labv = _split[set_element_index] & lineage_mask[set_element_index];
     labv          = invert ? ~labv & lineage_mask[set_element_index] : labv;
 
-    size_t set_bit_offset = find_first_set(labv);
-
-    size_t lineage_index = set_element_index * _bits_per + set_bit_offset;
-
-    for (size_t i = lineage_mask.size_in_bits(); i < query_mask.size_in_bits();
-         ++i) {
-      auto tip_state = extract_tip_state(i);
-      tip_state      = invert ? !tip_state : tip_state;
-      table.get(lineage_index, i - lineage_mask.size_in_bits()) += tip_state;
+    for (size_t i = 0; i < lineage_mask.size_in_bits(); ++i) {
+      auto lineage_state = extract_tip_state(i);
+      for (size_t j = lineage_mask.size_in_bits();
+           j < query_mask.size_in_bits();
+           ++j) {
+        auto tip_state = extract_tip_state(j);
+        table.get(i, j - lineage_mask.size_in_bits()) +=
+            tip_state == lineage_state;
+      }
     }
   }
 
@@ -101,10 +101,10 @@ public:
   SplitSet(const SplitSet &)            = delete;
   SplitSet &operator=(const SplitSet &) = delete;
 
-  SplitSet(SplitSet &&other)
-      : _splits{other._splits},
-        _split_count{other._split_count},
-        _split_len{other._split_len} {
+  SplitSet(SplitSet &&other) :
+      _splits{other._splits},
+      _split_count{other._split_count},
+      _split_len{other._split_len} {
     other._splits      = nullptr;
     other._split_len   = 0;
     other._split_count = 0;
@@ -130,7 +130,13 @@ public:
                   const TaxaMask    &lineage_mask,
                   const TaxaMask    &query_mask) {
     for (size_t i = 0; i < _split_count; ++i) {
-      _splits->score(accumulation_table, lineage_mask, query_mask);
+      _splits[i].score(accumulation_table, lineage_mask, query_mask);
+    }
+  }
+
+  void print(const TaxaList &lineages, const TaxaList &queries) const {
+    for (size_t i = 0; i < _split_count; ++i) {
+      LOG_INFO("{}", _splits[i].to_string(lineages, queries));
     }
   }
 
@@ -180,4 +186,3 @@ public:
 private:
   std::vector<SplitSet> _splits;
 };
-

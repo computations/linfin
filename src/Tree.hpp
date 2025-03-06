@@ -74,8 +74,8 @@ public:
         continue;
       }
 
-      node->node_index  = cur_idx + all_offset;
-      cur_idx          += 1;
+      node->node_index = cur_idx + all_offset;
+      cur_idx += 1;
     }
     make_tree_node_ids_consistent();
   }
