@@ -3,6 +3,8 @@
 #include "Taxa.hpp"
 #include "Tree.hpp"
 
+#include <sstream>
+
 struct Split {
   static constexpr size_t _bits_per = sizeof(uint32_t) * 8;
 
@@ -11,6 +13,31 @@ struct Split {
     size_t mask_offset = index % _bits_per;
 
     return bextr(_split[mask_index], mask_offset);
+  }
+
+  std::string to_string(const TaxaList &linages,
+                        const TaxaList &queries) const {
+    std::ostringstream left_oss;
+    std::ostringstream right_oss;
+
+    for (size_t i = 0; i < linages.size(); ++i) {
+      if (extract_tip_state(i)) {
+        left_oss << linages[i];
+      } else {
+        right_oss << linages[i];
+      }
+    }
+
+    for (size_t i = 0; i < queries.size(); ++i) {
+      if (extract_tip_state(linages.size() + i)) {
+        left_oss << queries[i];
+      } else {
+        right_oss << queries[i];
+      }
+    }
+
+    left_oss << "|" << right_oss.str();
+    return left_oss.str();
   }
 
   inline uint32_t mask_and_popcount(const TaxaMask &mask) {
