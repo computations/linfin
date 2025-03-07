@@ -46,6 +46,13 @@ public:
     return _table[lineage_index * _query_count + query_index];
   }
 
+  AccumulationType get(size_t lineage_index, size_t query_index) const{
+    if (lineage_index >= _lineage_count || query_index >= _query_count) {
+      LOG_ERROR("Index is too large");
+    }
+    return _table[lineage_index * _query_count + query_index];
+  }
+
 private:
   AccumulationType *_table;
   size_t            _lineage_count;

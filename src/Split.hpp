@@ -2,6 +2,7 @@
 #include "Accumulation.hpp"
 #include "Taxa.hpp"
 #include "Tree.hpp"
+#include "Util.hpp"
 
 #include <sstream>
 
@@ -69,15 +70,12 @@ struct Split {
     uint32_t labv = _split[set_element_index] & lineage_mask[set_element_index];
     labv          = invert ? ~labv & lineage_mask[set_element_index] : labv;
 
-    for (size_t i = 0; i < lineage_mask.size_in_bits(); ++i) {
-      auto lineage_state = extract_tip_state(i);
-      for (size_t j = lineage_mask.size_in_bits();
-           j < query_mask.size_in_bits();
-           ++j) {
-        auto tip_state = extract_tip_state(j);
-        table.get(i, j - lineage_mask.size_in_bits()) +=
-            tip_state == lineage_state;
-      }
+    auto lineage_index = find_first_set(labv);
+    for (size_t j = lineage_mask.size_in_bits(); j < query_mask.size_in_bits();
+         ++j) {
+      auto tip_state = extract_tip_state(j);
+      tip_state      = invert ? !tip_state : tip_state;
+      table.get(lineage_index, j - lineage_mask.size_in_bits()) += tip_state;
     }
   }
 
@@ -101,10 +99,10 @@ public:
   SplitSet(const SplitSet &)            = delete;
   SplitSet &operator=(const SplitSet &) = delete;
 
-  SplitSet(SplitSet &&other) :
-      _splits{other._splits},
-      _split_count{other._split_count},
-      _split_len{other._split_len} {
+  SplitSet(SplitSet &&other)
+      : _splits{other._splits},
+        _split_count{other._split_count},
+        _split_len{other._split_len} {
     other._splits      = nullptr;
     other._split_len   = 0;
     other._split_count = 0;

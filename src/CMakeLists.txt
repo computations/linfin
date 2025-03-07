@@ -1,5 +1,6 @@
 set(BIN_SOURCE_FILES 
   main.cpp
+  IO.cpp
 )
 
 add_executable(linfin ${BIN_SOURCE_FILES})

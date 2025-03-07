@@ -1,3 +1,4 @@
+#include "IO.hpp"
 #include "Split.hpp"
 #include "Taxa.hpp"
 #include "Tree.hpp"
@@ -22,9 +23,9 @@ struct ProgramOptions {
 int main(int argc, char **argv) {
   logger::get_log_states().add_stream(
       stdout,
-      logger::log_level::info | logger::log_level::warning |
-          logger::log_level::important | logger::log_level::error |
-          logger::log_level::progress);
+      logger::log_level::info | logger::log_level::warning
+          | logger::log_level::important | logger::log_level::error
+          | logger::log_level::progress);
   ProgramOptions options;
   CLI::App       app{"A project for chase :)"};
 
@@ -56,16 +57,16 @@ int main(int argc, char **argv) {
   LOG_INFO("Making splits");
   SplitSetList split_set_list{tree_list};
 
-  LOG_INFO("Computing results");
+  LOG_INFO("Accumulating matches");
   auto table = split_set_list.accumulate(lineage_list, query_list);
 
   LOG_INFO("Total Splits: {}", split_set_list.total_splits());
-  for (size_t i = 0; i < lineage_list.size(); ++i) {
-    for (size_t j = 0; j < query_list.size(); ++j) {
-      LOG_INFO("lineage: {}, query: {}, count: {}",
-               lineage_list[i],
-               query_list[j],
-               table.get(i, j));
-    }
-  }
+
+  constexpr auto OPTIONS_KEY = "options";
+  constexpr auto OUTPUT_KEY  = "output";
+
+  const std::filesystem::path output_csv_filename{
+      yaml[OPTIONS_KEY][OUTPUT_KEY].as<std::string>()};
+
+  write_results_to_csv(table, lineage_list, query_list, output_csv_filename);
 }
